@@ -463,7 +463,10 @@ input[type="text"]:focus, input[type="date"]:focus, select:focus, textarea:focus
        </div>
        <div><label class="text-xs font-semibold text-slate-500 mb-1 block" for="trx-amount">Jumlah (Rp)</label> <input id="trx-amount" type="text" inputmode="numeric" placeholder="0" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" required>
        </div>
-       <div><label class="text-xs font-semibold text-slate-500 mb-2 block">Kategori</label>
+       <div class="flex justify-between items-center mb-2">
+         <label class="text-xs font-semibold text-slate-500 block">Kategori</label>
+         <button type="button" onclick="tambahKategoriBaru()" class="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-xl font-bold hover:bg-blue-200 transition">+ Kategori Baru</button>
+       </div>
         <div id="category-chips" class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4"><button type="button" class="category-chip" data-category="Makanan"> <span class="text-lg">🍔</span> <span class="text-xs font-semibold mt-1">Makanan</span> </button> <button type="button" class="category-chip" data-category="Bensin"> <span class="text-lg">⛽</span> <span class="text-xs font-semibold mt-1">Bensin</span> </button> <button type="button" class="category-chip" data-category="Tagihan"> <span class="text-lg">📄</span> <span class="text-xs font-semibold mt-1">Tagihan</span> </button> <button type="button" class="category-chip" data-category="Jajan"> <span class="text-lg">🍿</span> <span class="text-xs font-semibold mt-1">Jajan</span> </button> <button type="button" class="category-chip" data-category="Hiburan"> <span class="text-lg">🎮</span> <span class="text-xs font-semibold mt-1">Hiburan</span> </button> <button type="button" class="category-chip" data-category="Tabungan"> <span class="text-lg">🏦</span> <span class="text-xs font-semibold mt-1">Tabungan</span> </button> <button type="button" class="category-chip" data-category="Gaji"> <span class="text-lg">💼</span> <span class="text-xs font-semibold mt-1">Gaji</span> </button> <button type="button" class="category-chip" data-category="Lainnya"> <span class="text-lg">📦</span> <span class="text-xs font-semibold mt-1">Lainnya</span> </button><button type="button" class="category-chip" data-category="Tarik Tunai"> <span class="text-lg">🏧</span> <span class="text-xs font-semibold mt-1">Tarik Tunai</span> </button>
         </div><input type="hidden" id="trx-cat" value="">
        </div>
@@ -626,6 +629,67 @@ input[type="text"]:focus, input[type="date"]:focus, select:focus, textarea:focus
    <button class="active" data-page="dashboard" onclick="showPage('dashboard')"><i data-lucide="layout-dashboard"></i> <span>Dashboard</span></button> <button data-page="transaksi" onclick="showPage('transaksi')"><i data-lucide="plus-circle"></i> <span>Transaksi</span></button> <button data-page="riwayat" onclick="showPage('riwayat')"><i data-lucide="list"></i> <span>Riwayat</span></button> <button data-page="target-nabung" onclick="showPage('target-nabung')"><i data-lucide="target"></i> <span>Target</span></button> <button data-page="recurring" onclick="showPage('recurring')"><i data-lucide="repeat"></i> <span>Berulang</span></button>
   </nav>
   <script>
+   // ============ SISTEM KATEGORI DINAMIS ============
+let daftarKategori = getLS('mt_kategori', [
+  { id: 'Makanan', icon: '🍔' }, { id: 'Bensin', icon: '⛽' },
+  { id: 'Tagihan', icon: '📄' }, { id: 'Jajan', icon: '🍿' },
+  { id: 'Hiburan', icon: '🎮' }, { id: 'Tabungan', icon: '🏦' },
+  { id: 'Gaji', icon: '💼' }, { id: 'Lainnya', icon: '📦' },
+  { id: 'Tarik Tunai', icon: '🏧' }
+]);
+
+function simpanKategori() { setLS('mt_kategori', daftarKategori); }
+
+function renderSemuaKategori() {
+  // BIKIN HTML UNTUK KOTAK-KOTAK ICON KATEGORI & DROPDOWN
+  const htmlChips = daftarKategori.map(k => `<button type="button" class="category-chip ${selectedCategory===k.id?'active':''}" data-category="${k.id}"> <span class="text-lg">${k.icon}</span> <span class="text-xs font-semibold mt-1">${k.id}</span> </button>`).join('');
+  const htmlQuickChips = daftarKategori.map(k => `<button type="button" class="quick-category-chip ${quickAddCategory===k.id?'active':''}" data-category="${k.id}"> <span class="text-xl">${k.icon}</span> </button>`).join('');
+  const htmlOptions = daftarKategori.map(k => `<option value="${k.id}">${k.icon} ${k.id}</option>`).join('');
+
+  // SUNTIKKAN/TEMPEL KE SEMUA MENU YANG BUTUH KATEGORI (TRANSAKSI, BUDGET, FILTER, DLL)
+  if(document.getElementById('category-chips')) document.getElementById('category-chips').innerHTML = htmlChips;
+  if(document.getElementById('quick-category-chips')) document.getElementById('quick-category-chips').innerHTML = htmlQuickChips;
+  if(document.getElementById('filter-category')) document.getElementById('filter-category').innerHTML = '<option value="">Semua Kategori</option>' + htmlOptions;
+  if(document.getElementById('budget-cat')) document.getElementById('budget-cat').innerHTML = htmlOptions;
+  if(document.getElementById('rec-cat')) document.getElementById('rec-cat').innerHTML = htmlOptions;
+
+  // HIDUPKAN KEMBALI FITUR KLIK UNTUK KOTAK KATEGORI TRANSAKSI
+  document.querySelectorAll('.category-chip').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      selectedCategory = chip.dataset.category;
+      document.getElementById('trx-cat').value = selectedCategory;
+    });
+  });
+
+  // HIDUPKAN KEMBALI FITUR KLIK UNTUK KOTAK KATEGORI QUICK ADD (TOMBOL PETIR)
+  document.querySelectorAll('.quick-category-chip').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.quick-category-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      quickAddCategory = chip.dataset.category;
+      document.getElementById('quick-cat').value = quickAddCategory;
+    });
+  });
+}
+
+// FUNGSI UNTUK MEMUNCULKAN POP-UP TAMBAH KATEGORI LEWAT HP
+function tambahKategoriBaru() {
+  const nama = prompt("NAMA KATEGORI BARU (Contoh: Skincare):");
+  if(!nama) return;
+  const emoji = prompt(`MASUKKAN SATU EMOJI UNTUK ${nama.toUpperCase()} (Contoh: 🧴):`, "📦");
+  if(!emoji) return;
+  
+  // SIMPAN DAN REFRESH TAMPILAN KATEGORI SECARA OTOMATIS
+  daftarKategori.push({ id: nama, icon: emoji });
+  simpanKategori();
+  renderSemuaKategori();
+  showToast(`Kategori ${nama} berhasil ditambahkan!`, 'success');
+}
+// =================================================
 // ============ UTILS ============
 function rp(n) { return 'Rp ' + (n||0).toLocaleString('id-ID'); }
 function parseRp(s) { return parseInt(String(s).replace(/\D/g,''))||0; }
@@ -2547,6 +2611,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Initial render
+    renderSemuaKategori();
     renderDashboard();
     refreshAccSelect();
     generateReport();
