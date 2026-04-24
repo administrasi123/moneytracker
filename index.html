@@ -1748,12 +1748,21 @@ function checkBudgetAlert(trx) {
   const budget = budgets[trx.category];
   if (!budget) return;
   const spent = getMonthlySpending(trx.category);
-  const pct = (spent/budget)*100;
-  if (pct >= 100) showToast(`🚨 Budget ${trx.category} sudah habis!`, 'error');
-  else if (pct >= 90) showToast(`⚠️ Budget ${trx.category} hampir habis (${Math.round(pct)}%)!`, 'warning');
-  else if (pct >= 70) showToast(`Budget ${trx.category} sudah ${Math.round(pct)}%`, 'warning');
-}
+  const pct = (spent / budget) * 100;
 
+  // JIKA BUDGET SUDAH HABIS ATAU OVER (100% KE ATAS)
+  if (pct >= 100) {
+    openModal('🚨 WARNING: DOMPET MENANGIS!', `GAWAT! BUDGET UNTUK ${trx.category.toUpperCase()} SUDAH HABIS (100%). STOP PENGELUARAN SEKARANG JUGA ATAU MAKAN MIE INSTAN TERUS!`, () => {});
+  } 
+  // JIKA BUDGET SISA DIKIT (80% KE ATAS)
+  else if (pct >= 80) {
+    openModal('⚠️ SIAGA 1: AKTIFKAN MODE HEMAT!', `HATI-HATI! BUDGET ${trx.category.toUpperCase()} KAMU SUDAH TERPAKAI ${Math.round(pct)}%. TAHAN NAFSU JAJANMU!`, () => {});
+  } 
+  // JIKA BUDGET BARU SETENGAH (50% KE ATAS) - CUKUP NOTIF KECIL
+  else if (pct >= 50) {
+    showToast(`BUDGET ${trx.category.toUpperCase()} SUDAH TERPAKAI ${Math.round(pct)}%. MASIH AMAN TAPI TETAP WASPADA YA!`, 'warning');
+  }
+}
 // ============ AI INSIGHTS ============
 function generateAIInsights() {
   const loadingEl = document.getElementById('ai-loading-insight');
