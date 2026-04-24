@@ -1104,13 +1104,23 @@ function editTrx(id) {
 function deleteTrx(id) {
   const t = transactions.find(x => x.id === id);
   if (!t) return;
+  
   openModal('Hapus Transaksi', `Hapus ${t.category} ${rp(t.amount)}?`, () => {
-    const acc = accounts.find(a => a.id === t.accountId);
-    if (acc) acc.balance += t.type === 'pemasukan' ? -t.amount : t.amount;
+    // PERBAIKAN 1: HANYA KEMBALIKAN SALDO JIKA BUKAN TRANSAKSI 'CASH'
+    if (t.accountId && t.accountId !== 'cash') {
+      const acc = accounts.find(a => a.id === t.accountId);
+      if (acc) acc.balance += t.type === 'pemasukan' ? -t.amount : t.amount;
+    }
+    
     transactions = transactions.filter(x => x.id !== id);
-    saveTrx(); saveAcc();
-    renderHistory(); renderDashboard();
-    updateInsightsAfterTransaction();
+    saveTrx(); 
+    saveAcc();
+    renderHistory(); 
+    renderDashboard();
+    
+    // PERBAIKAN 2: GANTI FUNGSI YANG ERROR DENGAN FUNGSI YANG BENAR
+    generateAIInsights();
+    
     if (goals.length > 0) renderGoals(); // Update goals progress
     showToast('Transaksi dihapus', 'success');
   });
