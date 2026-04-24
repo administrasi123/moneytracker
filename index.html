@@ -464,7 +464,7 @@ input[type="text"]:focus, input[type="date"]:focus, select:focus, textarea:focus
        <div><label class="text-xs font-semibold text-slate-500 mb-1 block" for="trx-amount">Jumlah (Rp)</label> <input id="trx-amount" type="text" inputmode="numeric" placeholder="0" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" required>
        </div>
        <div><label class="text-xs font-semibold text-slate-500 mb-2 block">Kategori</label>
-        <div id="category-chips" class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4"><button type="button" class="category-chip" data-category="Makanan"> <span class="text-lg">🍔</span> <span class="text-xs font-semibold mt-1">Makanan</span> </button> <button type="button" class="category-chip" data-category="Bensin"> <span class="text-lg">⛽</span> <span class="text-xs font-semibold mt-1">Bensin</span> </button> <button type="button" class="category-chip" data-category="Tagihan"> <span class="text-lg">📄</span> <span class="text-xs font-semibold mt-1">Tagihan</span> </button> <button type="button" class="category-chip" data-category="Jajan"> <span class="text-lg">🍿</span> <span class="text-xs font-semibold mt-1">Jajan</span> </button> <button type="button" class="category-chip" data-category="Hiburan"> <span class="text-lg">🎮</span> <span class="text-xs font-semibold mt-1">Hiburan</span> </button> <button type="button" class="category-chip" data-category="Tabungan"> <span class="text-lg">🏦</span> <span class="text-xs font-semibold mt-1">Tabungan</span> </button> <button type="button" class="category-chip" data-category="Gaji"> <span class="text-lg">💼</span> <span class="text-xs font-semibold mt-1">Gaji</span> </button> <button type="button" class="category-chip" data-category="Lainnya"> <span class="text-lg">📦</span> <span class="text-xs font-semibold mt-1">Lainnya</span> </button>
+        <div id="category-chips" class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4"><button type="button" class="category-chip" data-category="Makanan"> <span class="text-lg">🍔</span> <span class="text-xs font-semibold mt-1">Makanan</span> </button> <button type="button" class="category-chip" data-category="Bensin"> <span class="text-lg">⛽</span> <span class="text-xs font-semibold mt-1">Bensin</span> </button> <button type="button" class="category-chip" data-category="Tagihan"> <span class="text-lg">📄</span> <span class="text-xs font-semibold mt-1">Tagihan</span> </button> <button type="button" class="category-chip" data-category="Jajan"> <span class="text-lg">🍿</span> <span class="text-xs font-semibold mt-1">Jajan</span> </button> <button type="button" class="category-chip" data-category="Hiburan"> <span class="text-lg">🎮</span> <span class="text-xs font-semibold mt-1">Hiburan</span> </button> <button type="button" class="category-chip" data-category="Tabungan"> <span class="text-lg">🏦</span> <span class="text-xs font-semibold mt-1">Tabungan</span> </button> <button type="button" class="category-chip" data-category="Gaji"> <span class="text-lg">💼</span> <span class="text-xs font-semibold mt-1">Gaji</span> </button> <button type="button" class="category-chip" data-category="Lainnya"> <span class="text-lg">📦</span> <span class="text-xs font-semibold mt-1">Lainnya</span> </button><button type="button" class="category-chip" data-category="Tarik Tunai"> <span class="text-lg">🏧</span> <span class="text-xs font-semibold mt-1">Tarik Tunai</span> </button>
         </div><input type="hidden" id="trx-cat" value="">
        </div>
        <div><label class="text-xs font-semibold text-slate-500 mb-1 block" for="trx-method">Metode</label> <select id="trx-method" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" onchange="toggleAccSelect()"> <option value="Cash">💵 Cash</option> <option value="QRIS">📱 QRIS</option> <option value="Transfer">🏧 Transfer</option> <option value="E-wallet">📲 E-wallet</option> </select>
@@ -795,8 +795,15 @@ function renderDashboard() {
 // ============ TARGET NABUNG / SAVINGS GOAL ============
 function calculateGoalProgress(goal) {
   try {
-    const savedAmount = transactions.filter(t => t.type === 'pemasukan' && t.category === 'Tabungan')
-      .reduce((s, t) => s + t.amount, 0);
+    // HITUNG TOTAL UANG MASUK KE TABUNGAN
+    const uangMasuk = transactions.filter(t => t.type === 'pemasukan' && t.category === 'Tabungan').reduce((s, t) => s + t.amount, 0);
+    
+    // HITUNG TOTAL UANG TABUNGAN YANG DIJEBOL (DIPAKAI)
+    const uangKeluar = transactions.filter(t => t.type === 'pengeluaran' && t.category === 'Tabungan').reduce((s, t) => s + t.amount, 0);
+    
+    // SISA TABUNGAN SEKARANG
+    const savedAmount = Math.max(0, uangMasuk - uangKeluar);
+    
     const progress = Math.min((savedAmount / goal.target) * 100, 100);
     const remaining = Math.max(goal.target - savedAmount, 0);
     return { savedAmount, progress, remaining };
@@ -990,7 +997,6 @@ document.getElementById('form-trx').addEventListener('submit', function(e) {
   const method = document.getElementById('trx-method').value;
   const accId = document.getElementById('trx-acc').value;
   
-  // Check if account is needed
   if (method !== 'Cash' && !accId) {
     return showToast('Pilih rekening!', 'warning');
   }
@@ -1014,7 +1020,7 @@ document.getElementById('form-trx').addEventListener('submit', function(e) {
     amount,
     category: selectedCategory,
     method: method,
-    accountId: accId || 'cash', // Use 'cash' for Cash transactions
+    accountId: accId || 'cash', 
     note: document.getElementById('trx-note').value,
     createdAt: editingTrxId ? transactions.find(t=>t.id===editingTrxId)?.createdAt || now.toISOString() : now.toISOString(),
     transactionDate,
@@ -1022,25 +1028,37 @@ document.getElementById('form-trx').addEventListener('submit', function(e) {
   };
 
   if (editingTrxId) {
-    // Reverse old transaction
     const old = transactions.find(t => t.id === editingTrxId);
-    if (old && old.accountId !== 'cash') {
+    if (old && old.accountId) {
       const oldAcc = accounts.find(a => a.id === old.accountId);
       if (oldAcc) {
         oldAcc.balance += old.type === 'pemasukan' ? -old.amount : old.amount;
       }
     }
+    
+    // BATALKAN TARIK TUNAI LAMA (SAAT EDIT TRANSAKSI)
+    if (old && old.category === 'Tarik Tunai' && old.type === 'pengeluaran') {
+      const cashAcc = accounts.find(a => a.id === 'cash' || a.type === 'cash');
+      if (cashAcc) cashAcc.balance -= old.amount;
+    }
+    
     transactions = transactions.filter(t => t.id !== editingTrxId);
     editingTrxId = null;
     document.getElementById('edit-trx-section').classList.add('hidden');
   }
 
-  // Apply to account only if not Cash
-  if (accId !== 'cash' && accId) {
+  // POTONG/TAMBAH SALDO REKENING UTAMA
+  if (accId) {
     const acc = accounts.find(a => a.id === accId);
     if (acc) {
       acc.balance += trx.type === 'pemasukan' ? trx.amount : -trx.amount;
     }
+  }
+
+  // MAGIC: JIKA TARIK TUNAI, OTOMATIS TAMBAHKAN KE UANG TUNAI
+  if (trx.category === 'Tarik Tunai' && trx.type === 'pengeluaran') {
+    const cashAcc = accounts.find(a => a.id === 'cash' || a.type === 'cash');
+    if (cashAcc) cashAcc.balance += trx.amount;
   }
 
   transactions.push(trx);
@@ -1060,7 +1078,7 @@ document.getElementById('form-trx').addEventListener('submit', function(e) {
   toggleAccSelect();
   showToast('Transaksi tersimpan!', 'success');
   refreshAccSelect();
-  if (goals.length > 0) renderGoals(); // Update goals progress
+  if (goals.length > 0) renderGoals();
 });
 
 document.getElementById('btn-cancel-edit').addEventListener('click', () => {
@@ -1106,7 +1124,7 @@ function deleteTrx(id) {
   if (!t) return;
   
   openModal('Hapus Transaksi', `Hapus ${t.category} ${rp(t.amount)}?`, () => {
-    // PERBAIKAN: SEMUA REKENING (TERMASUK CASH) SEKARANG SALDONYA AKAN DIKEMBALIKAN!
+    // KEMBALIKAN SALDO BANK UTAMA
     if (t.accountId) {
       const acc = accounts.find(a => a.id === t.accountId);
       if (acc) {
@@ -1114,11 +1132,15 @@ function deleteTrx(id) {
       }
     }
     
+    // BATALKAN UANG TUNAI JIKA INI ADALAH TRANSAKSI 'TARIK TUNAI'
+    if (t.category === 'Tarik Tunai' && t.type === 'pengeluaran') {
+      const cashAcc = accounts.find(a => a.id === 'cash' || a.type === 'cash');
+      if (cashAcc) cashAcc.balance -= t.amount;
+    }
+    
     transactions = transactions.filter(x => x.id !== id);
-    saveTrx(); 
-    saveAcc();
-    renderHistory(); 
-    renderDashboard();
+    saveTrx(); saveAcc();
+    renderHistory(); renderDashboard();
     generateAIInsights();
     
     if (goals.length > 0) renderGoals(); 
