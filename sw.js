@@ -1,21 +1,24 @@
 const CACHE_NAME = 'money-tracker-v1';
-const urlsToCache = [
+const assets = [
   './',
   './index.html',
   './manifest.json'
-  // CATATAN: JIKA ANDA PUNYA FILE CSS ATAU JS TERPISAH (MISALNYA SCRIPT.JS ATAU STYLE.CSS), TAMBAHKAN NAMA FILENYA DI SINI.
 ];
 
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+// PROSES INSTALL & SIMPAN CACHE
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(assets);
+    })
   );
 });
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
+// PROSES AMBIL DATA SAAT OFFLINE
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(res => {
+      return res || fetch(e.request);
+    })
   );
 });
