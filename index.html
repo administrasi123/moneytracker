@@ -1933,7 +1933,34 @@ function analyzeTransactions() {
       detail: `Kebutuhan: ${rp(needsTotal)} dari total ${rp(totalExpense)}`
     });
   }
-  
+  // ===== INSIGHT 6: SMART BUDGET REALLOCATION (SUBSIDI SILANG) =====
+  const categoryStatus = [];
+  Object.keys(budgets).forEach(cat => {
+    const b = budgets[cat];
+    if (b > 0) {
+      const s = getMonthlySpending(cat);
+      const p = (s / b) * 100;
+      const r = b - s;
+      categoryStatus.push({ cat: cat, budget: b, spent: s, pct: p, remaining: r });
+    }
+  });
+
+  // CARI YANG HAMPIR HABIS (>85%) DAN YANG MASIH SISA BANYAK (<40% DAN SISA > 50 RIBU)
+  const criticalCats = categoryStatus.filter(c => c.pct >= 85).sort((a,b) => b.pct - a.pct);
+  const surplusCats = categoryStatus.filter(c => c.pct <= 40 && c.remaining > 50000).sort((a,b) => b.remaining - a.remaining);
+
+  if (criticalCats.length > 0 && surplusCats.length > 0) {
+    const kritis = criticalCats[0];
+    const sisa = surplusCats[0];
+    
+    // UNSHIFT AGAR SARAN INI MUNCUL PALING ATAS DI DASHBOARD
+    insights.unshift({ 
+      emoji: '🔀',
+      title: `Subsidi Silang Budget`,
+      message: `Budget ${kritis.cat} kritis (${Math.round(kritis.pct)}%). Mending pakai sisa budget ${sisa.cat}!`,
+      detail: `Sisa ${sisa.cat} masih ada ${rp(sisa.remaining)}. Bisa buat nombokin ${kritis.cat}.`
+    });
+  }
   // Return max 4 insights
   return insights.slice(0, 4);
 }
