@@ -3,8 +3,8 @@ const urlsToCache = [
   './',
   './index.html',
   './manifest.json'
-  // CATATAN: JIKA ANDA PUNYA FILE CSS ATAU JS TERPISAH (MISALNYA SCRIPT.JS ATAU STYLE.CSS), TAMBAHKAN NAMA FILENYA DI SINI.
-];
+  './sw.js'
+  ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
